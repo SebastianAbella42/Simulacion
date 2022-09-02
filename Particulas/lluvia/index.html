@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+
+        <title>Babylon.js sample code</title>
+
+        <!-- Babylon.js -->
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.6.2/dat.gui.min.js"></script>
+        <script src="https://assets.babylonjs.com/generated/Assets.js"></script>
+        <script src="https://preview.babylonjs.com/ammo.js"></script>
+        <script src="https://preview.babylonjs.com/cannon.js"></script>
+        <script src="https://preview.babylonjs.com/Oimo.js"></script>
+        <script src="https://preview.babylonjs.com/earcut.min.js"></script>
+        <script src="https://preview.babylonjs.com/babylon.js"></script>
+        <script src="https://preview.babylonjs.com/materialsLibrary/babylonjs.materials.min.js"></script>
+        <script src="https://preview.babylonjs.com/proceduralTexturesLibrary/babylonjs.proceduralTextures.min.js"></script>
+        <script src="https://preview.babylonjs.com/postProcessesLibrary/babylonjs.postProcess.min.js"></script>
+        <script src="https://preview.babylonjs.com/loaders/babylonjs.loaders.js"></script>
+        <script src="https://preview.babylonjs.com/serializers/babylonjs.serializers.min.js"></script>
+        <script src="https://preview.babylonjs.com/gui/babylon.gui.min.js"></script>
+        <script src="https://preview.babylonjs.com/inspector/babylon.inspector.bundle.js"></script>
+
+        <style>
+            html, body {
+                overflow: hidden;
+                width: 100%;
+                height: 100%;
+                margin: 0;
+                padding: 0;
+            }
+
+            #renderCanvas {
+                width: 100%;
+                height: 100%;
+                touch-action: none;
+            }
+        </style>
+    </head>
+<body>
+    <canvas id="renderCanvas"></canvas>
+    <script>
+        var canvas = document.getElementById("renderCanvas");
+
+        var startRenderLoop = function (engine, canvas) {
+            engine.runRenderLoop(function () {
+                if (sceneToRender && sceneToRender.activeCamera) {
+                    sceneToRender.render();
+                }
+            });
+        }
+
+        var engine = null;
+        var scene = null;
+        var sceneToRender = null;
+        var createDefaultEngine = function() { return new BABYLON.Engine(canvas, true, { preserveDrawingBuffer: true, stencil: true,  disableWebGL2Support: false}); };
+                var canvas = document.getElementById("renderCanvas");
+        
+                var createScene = function () {
+                    var scene = new BABYLON.Scene(engine);
+                
+                    // Setup environment
+                    var light0 = new BABYLON.PointLight("Omni", new BABYLON.Vector3(0, 2, 8), scene);
+                    var camera = new BABYLON.ArcRotateCamera("ArcRotateCamera", 1, 0.8, 20, new BABYLON.Vector3(0, 0, 0), scene);
+                    camera.attachControl(canvas, true);
+                
+                    // Ground
+                    var ground = BABYLON.Mesh.CreatePlane("ground", 50.0, scene);
+                    ground.position = new BABYLON.Vector3(0, -10, 0);
+                    ground.rotation = new BABYLON.Vector3(Math.PI / 2, 0, 0);
+                
+                    ground.material = new BABYLON.StandardMaterial("groundMat", scene);
+                    ground.material.backFaceCulling = false;
+                    ground.material.diffuseColor = new BABYLON.Color3(0.3, 0.3, 1);
+                
+                    // Create & launch a particule system
+                    var particleSystem = new BABYLON.ParticleSystem("spawnParticles", 3600, scene);    // 3600 particles to have a continue effect when computing circle positions
+                    particleSystem.particleTexture = new BABYLON.Texture("textures/flare.png", scene);
+                    particleSystem.color1 = new BABYLON.Color4(.9, .9, .95, 1.0);
+                    particleSystem.color2 = new BABYLON.Color4(0.2, 0.2, .3, .5);
+                    particleSystem.colorDead = new BABYLON.Color4(0, 0, 0.2, 0.0);
+                    particleSystem.emitter = new BABYLON.Vector3(0, 20, 0);
+                    particleSystem.minSize = 0.1;
+                    particleSystem.maxSize = 0.5;
+                    particleSystem.emitRate = 500;
+                    particleSystem.blendMode = BABYLON.ParticleSystem.BLENDMODE_ONEONE;     // to manage alpha
+                    particleSystem.gravity = new BABYLON.Vector3(0, -9.81, 0);
+                    //particleSystem.direction1 = new BABYLON.Vector3(-1, 1, -1);
+                    //particleSystem.direction2 = new BABYLON.Vector3(1, 1, 1);
+                    particleSystem.minEmitPower = -10;
+                    particleSystem.maxEmitPower = -100;
+                    //particleSystem.updateSpeed = 0.1;
+                
+                    var radius = 15;
+                
+                    // Custom function to get the circle effect
+                    particleSystem.startPositionFunction = function(worldMatrix, positionToUpdate)
+                    {
+                        var rndAngle = 2 * Math.random() * Math.PI;
+                        var randX = Math.random() *radius * Math.sin(rndAngle);
+                        var randY = this.minEmitBox.y;
+                        var randZ = Math.random() *radius * Math.cos(rndAngle);
+                        
+                        BABYLON.Vector3.TransformCoordinatesFromFloatsToRef(randX, randY, randZ, worldMatrix, positionToUpdate);
+                    }
+                    
+                    var spriteManagerTrees = new BABYLON.SpriteManager("treesManager", "textures/palm.png", 200, 800, scene);
+                    //var ray = new BABYLON.Ray(BABYLON.Vector3.Zero(), BABYLON.Vector3.Zero(), 0);
+                    particleSystem.updateFunction = function(particles) {
+        
+                for (var index = 0; index < particles.length; index++) {
+                    var particle = particles[index];
+                    particle.age += this._scaledUpdateSpeed;
+                    if (particle.age >= particle.lifeTime) {
+                        this.recycleParticle(particle);
+                        index--;
+                        continue;
+                    }
+                    else {
+                        particle.colorStep.scaleToRef(this._scaledUpdateSpeed, this._scaledColorStep);
+                        particle.color.addInPlace(this._scaledColorStep);
+                        if (particle.color.a < 0)
+                            particle.color.a = 0;
+                        particle.angle += particle.angularSpeed * this._scaledUpdateSpeed;
+                        particle.direction.scaleToRef(this._scaledUpdateSpeed, this._scaledDirection);
+                        particle.position.addInPlace(this._scaledDirection);
+                        this.gravity.scaleToRef(this._scaledUpdateSpeed, this._scaledGravity);
+                        particle.direction.addInPlace(this._scaledGravity);
+        
+                        // own code:
+                        var ray = new BABYLON.Ray(particle.position, particle.direction, .5);
+                        var hit = scene.pickWithRay(ray);
+                        if (hit.pickedMesh && hit.pickedMesh.name === 'ground') {
+                            //console.log('ground hit')
+                            var tree = new BABYLON.Sprite("", spriteManagerTrees);
+                            tree.position = new BABYLON.Vector3(particle.position.x, particle.position.y - hit.distance, particle.position.z);
+                            setTimeout(() => { tree.dispose() }, 700);
+                            //var verticesData = ground.getVerticesData(BABYLON.VertexBuffer.PositionKind)
+                            //tree.position = verticesData[ground.getIndices()[hit.faceID * 3]]
+                        }
+        
+                        /*ray.direction = particle.direction;
+                        ray.origin = particle.position;
+                        ray.length = .5;*/
+                    }
+                }
+                    };
+        
+                    // Start
+                    particleSystem.start();
+                
+                    return scene;
+                }
+                
+                
+                var engine = new BABYLON.Engine(canvas, true, { preserveDrawingBuffer: true, stencil: true });
+                var scene = createScene();
+        
+                engine.runRenderLoop(function () {
+                    if (scene) {
+                        scene.render();
+                    }
+                });
+        
+                // Resize
+                window.addEventListener("resize", function () {
+                    engine.resize();
+                });
+                window.initFunction = async function() {
+                    
+                    
+                    var asyncEngineCreation = async function() {
+                        try {
+                        return createDefaultEngine();
+                        } catch(e) {
+                        console.log("the available createEngine function failed. Creating the default engine instead");
+                        return createDefaultEngine();
+                        }
+                    }
+
+                    window.engine = await asyncEngineCreation();
+        if (!engine) throw 'engine should not be null.';
+        startRenderLoop(engine, canvas);
+        window.scene = createScene();};
+        initFunction().then(() => {sceneToRender = scene                    
+        });
+
+        // Resize
+        window.addEventListener("resize", function () {
+            engine.resize();
+        });
+    </script>
+</body>
+</html>
