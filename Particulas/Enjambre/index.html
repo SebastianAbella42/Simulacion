@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+
+        <title>Babylon.js sample code</title>
+
+        <!-- Babylon.js -->
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.6.2/dat.gui.min.js"></script>
+        <script src="https://assets.babylonjs.com/generated/Assets.js"></script>
+        <script src="https://preview.babylonjs.com/ammo.js"></script>
+        <script src="https://preview.babylonjs.com/cannon.js"></script>
+        <script src="https://preview.babylonjs.com/Oimo.js"></script>
+        <script src="https://preview.babylonjs.com/earcut.min.js"></script>
+        <script src="https://preview.babylonjs.com/babylon.js"></script>
+        <script src="https://preview.babylonjs.com/materialsLibrary/babylonjs.materials.min.js"></script>
+        <script src="https://preview.babylonjs.com/proceduralTexturesLibrary/babylonjs.proceduralTextures.min.js"></script>
+        <script src="https://preview.babylonjs.com/postProcessesLibrary/babylonjs.postProcess.min.js"></script>
+        <script src="https://preview.babylonjs.com/loaders/babylonjs.loaders.js"></script>
+        <script src="https://preview.babylonjs.com/serializers/babylonjs.serializers.min.js"></script>
+        <script src="https://preview.babylonjs.com/gui/babylon.gui.min.js"></script>
+        <script src="https://preview.babylonjs.com/inspector/babylon.inspector.bundle.js"></script>
+
+        <style>
+            html, body {
+                overflow: hidden;
+                width: 100%;
+                height: 100%;
+                margin: 0;
+                padding: 0;
+            }
+
+            #renderCanvas {
+                width: 100%;
+                height: 100%;
+                touch-action: none;
+            }
+        </style>
+    </head>
+<body>
+    <canvas id="renderCanvas"></canvas>
+    <script>
+        var canvas = document.getElementById("renderCanvas");
+
+        var startRenderLoop = function (engine, canvas) {
+            engine.runRenderLoop(function () {
+                if (sceneToRender && sceneToRender.activeCamera) {
+                    sceneToRender.render();
+                }
+            });
+        }
+
+        var engine = null;
+        var scene = null;
+        var sceneToRender = null;
+        var createDefaultEngine = function() { return new BABYLON.Engine(canvas, true, { preserveDrawingBuffer: true, stencil: true,  disableWebGL2Support: false}); };
+        var createScene = function () {
+            var scene = new BABYLON.Scene(engine);
+        
+            // Setup environment
+            var light0 = new BABYLON.PointLight("Omni", new BABYLON.Vector3(0, 2, 8), scene);
+            var camera = new BABYLON.ArcRotateCamera("ArcRotateCamera", 1, 0.8, 20, new BABYLON.Vector3(0, 0, 0), scene);
+            camera.attachControl(canvas, true);
+        
+            // Fountain object
+            var fountain = BABYLON.Mesh.CreateBox("foutain", 0.01, scene);
+        
+            // Create a particle system
+            var particleSystem = new BABYLON.ParticleSystem("particles", 500, scene);
+        
+            //Texture of each particle
+            particleSystem.particleTexture = new BABYLON.Texture("https://raw.githubusercontent.com/JuanHermida/Prueba-2/72c40b507999437b5073fadda6b87b4bb0ac38d2/1f41d.png", scene);
+        
+            // Where the particles come from
+            particleSystem.minEmitBox = new BABYLON.Vector3(0, 0, 0); // Starting all from
+            particleSystem.maxEmitBox = new BABYLON.Vector3(0, 0, 0); // To...
+        
+            // colores
+            particleSystem.color1 = new BABYLON.Color4(1, 0.73, 0);
+            particleSystem.color2 = new BABYLON.Color4(1, 0.82, 0);
+        
+            // Size of each particle (random between...
+            particleSystem.minSize = 0.25;
+            particleSystem.maxSize = 0.25;
+        
+            particleSystem.minLifeTime = 0.5;
+            particleSystem.maxLifeTime = 5.5;
+        
+            particleSystem.emitRate = 5500;
+        
+            particleSystem.blendMode = BABYLON.ParticleSystem.BLENDMODE_ONEONE;
+        
+            // Set the gravity of all particles
+            particleSystem.gravity = new BABYLON.Vector3(0, -10, 0);
+        
+            // Direction of each particle after it has been emitted
+            particleSystem.direction1 = new BABYLON.Vector3(-1, 4, 1);
+            particleSystem.direction2 = new BABYLON.Vector3(1, 4, -1);
+        
+            // Angular speed, in radians
+            particleSystem.minAngularSpeed = 0;
+            particleSystem.maxAngularSpeed = Math.PI;
+        
+            // Speed
+            particleSystem.minEmitPower = 0;
+            particleSystem.maxEmitPower = 0;
+            particleSystem.updateSpeed = 0.009;
+        
+            // Noise
+            var noiseTexture = new BABYLON.NoiseProceduralTexture("perlin", 256, scene);
+            noiseTexture.animationSpeedFactor = 5;
+            noiseTexture.persistence = 2;
+            noiseTexture.brightness = 0.5;
+            noiseTexture.octaves = 2;
+        
+            particleSystem.noiseTexture = noiseTexture;
+            particleSystem.noiseStrength = new BABYLON.Vector3(100, 100, 100);
+        
+            // Start the particle system
+            particleSystem.start();
+        
+            return scene;
+        }
+        
+                window.initFunction = async function() {
+                    
+                    
+                    var asyncEngineCreation = async function() {
+                        try {
+                        return createDefaultEngine();
+                        } catch(e) {
+                        console.log("the available createEngine function failed. Creating the default engine instead");
+                        return createDefaultEngine();
+                        }
+                    }
+
+                    window.engine = await asyncEngineCreation();
+        if (!engine) throw 'engine should not be null.';
+        startRenderLoop(engine, canvas);
+        window.scene = createScene();};
+        initFunction().then(() => {sceneToRender = scene                    
+        });
+
+        // Resize
+        window.addEventListener("resize", function () {
+            engine.resize();
+        });
+    </script>
+</body>
+</html>
