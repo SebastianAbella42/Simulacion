@@ -32,7 +32,7 @@
 			const clock = new THREE.Clock();
 
 			// Physics variables
-			const gravityConstant = - 5.8;
+			const gravityConstant = - 15.8;
 			let collisionConfiguration;
 			let dispatcher;
 			let broadphase;
@@ -162,8 +162,8 @@
 
 
 				// Ball
-				const ballMass = 3;
-				const ballRadius = 0.1;
+				const ballMass = 30;
+				const ballRadius = 0.3;
 
 				const ball = new THREE.Mesh(new THREE.SphereGeometry(ballRadius, 20, 20), new THREE.MeshPhongMaterial({ color: 0x202020 }));
 				ball.castShadow = true;
